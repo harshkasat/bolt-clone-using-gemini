@@ -26,7 +26,7 @@ export function Builder() {
   const location = useLocation();
   const { prompt } = location.state as { prompt: string };
   const [userPrompt, setPrompt] = useState("");
-  const [llmMessages, setLlmMessages] = useState<{role: "user" | "assistant", content: string;}[]>([]);
+  const [llmMessages, setLlmMessages] = useState<{role: "user" | "assistant", parts: { text: string }[];}[]>([]);
   const [loading, setLoading] = useState(false);
   const [templateSet, setTemplateSet] = useState(false);
   const webcontainer = useWebContainer();
@@ -165,11 +165,11 @@ export function Builder() {
 
     setLoading(true);
     const stepsResponse = await axios.post(`${BACKEND_URL}/chat`, {
-      messages: [...prompts, prompt].map(({ parts }) => ({
+      messages: [...prompts, prompt].map(content => ({
         role: "user",
         parts: [
           {
-            "text": parts[0].text
+            text:content
           }
         ]
       }))
@@ -184,10 +184,19 @@ export function Builder() {
 
     setLlmMessages([...prompts, prompt].map(content => ({
       role: "user",
-      content
+      parts: [
+        {
+          text:content
+        }
+      ]
     })));
 
-    setLlmMessages(x => [...x, {role: "assistant", content: stepsResponse.data.response}])
+    setLlmMessages(x => [...x, {
+      role: "assistant", 
+      parts: [{
+        text:stepsResponse.data.response
+      }]
+    }])
   }
 
   useEffect(() => {
@@ -223,7 +232,10 @@ export function Builder() {
                   <button onClick={async () => {
                     const newMessage = {
                       role: "user" as "user",
-                      content: userPrompt
+                      parts: [{
+                        text:userPrompt
+                      }]
+                      
                     };
 
                     setLoading(true);
@@ -235,7 +247,9 @@ export function Builder() {
                     setLlmMessages(x => [...x, newMessage]);
                     setLlmMessages(x => [...x, {
                       role: "assistant",
-                      content: stepsResponse.data.response
+                      parts: [{
+                        text:stepsResponse.data.response
+                      }]
                     }]);
                     
                     setSteps(s => [...s, ...parseXml(stepsResponse.data.response).map(x => ({
