@@ -1,33 +1,49 @@
-import React from 'react';
-import Editor from '@monaco-editor/react';
-import { FileItem } from '../types';
+import React, { useEffect, useState } from "react";
+import Editor from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 
 interface CodeEditorProps {
-  file: FileItem | null;
+  selectedFile: string;
+  fileContent: string;
+  onChange: (content: string | undefined) => void;
 }
 
-export function CodeEditor({ file }: CodeEditorProps) {
-  if (!file) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-400">
-        Select a file to view its contents
-      </div>
-    );
-  }
+export function CodeEditor({ selectedFile, fileContent, onChange }: CodeEditorProps) {
+  const [language, setLanguage] = useState("typescript");
+  
+  // Set the language based on file extension
+  useEffect(() => {
+    if (selectedFile.endsWith(".html")) {
+      setLanguage("html");
+    } else if (selectedFile.endsWith(".css")) {
+      setLanguage("css");
+    } else if (selectedFile.endsWith(".js")) {
+      setLanguage("javascript");
+    } else if (selectedFile.endsWith(".tsx")) {      setLanguage("typescript");
+    } else if (selectedFile.endsWith(".json")) {
+      setLanguage("json");
+    } else {
+      setLanguage("typescript");
+    }
+  }, [selectedFile]);
 
   return (
-    <Editor
-      height="100%"
-      defaultLanguage="typescript"
-      theme="vs-dark"
-      value={file.content || ''}
-      options={{
-        readOnly: true,
-        minimap: { enabled: false },
-        fontSize: 14,
-        wordWrap: 'on',
-        scrollBeyondLastLine: false,
-      }}
-    />
+    <div className="h-full w-full">
+      <Editor
+        height="100%"
+        language={language}
+        value={fileContent}
+        onChange={onChange}
+        theme="vs-dark"
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          wordWrap: "on",
+          readOnly: true,
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+        }}
+      />
+    </div>
   );
 }

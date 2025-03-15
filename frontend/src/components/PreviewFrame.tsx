@@ -1,44 +1,44 @@
-import { WebContainer } from '@webcontainer/api';
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useEffect } from "react";
+import { RefreshCw } from "lucide-react";
 
 interface PreviewFrameProps {
-  files: any[];
-  webContainer: WebContainer;
+  onRefresh: () => void;
+  previewUrl?: string;
 }
 
-export function PreviewFrame({ files, webContainer }: PreviewFrameProps) {
-  // In a real implementation, this would compile and render the preview
-  const [url, setUrl] = useState("");
-
-  async function main() {
-    const installProcess = await webContainer.spawn('npm', ['install']);
-
-    installProcess.output.pipeTo(new WritableStream({
-      write(data) {
-        console.log(data);
-      }
-    }));
-
-    await webContainer.spawn('npm', ['run', 'dev']);
-
-    // Wait for `server-ready` event
-    webContainer.on('server-ready', (port, url) => {
-      // ...
-      console.log(url)
-      console.log(port)
-      setUrl(url);
-    });
-  }
+export function PreviewFrame({ onRefresh, previewUrl }: PreviewFrameProps) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    main()
-  }, [])
+    if (iframeRef.current && previewUrl) {
+      iframeRef.current.src = previewUrl;
+    }
+  }, [previewUrl]);
+
   return (
-    <div className="h-full flex items-center justify-center text-gray-400">
-      {!url && <div className="text-center">
-        <p className="mb-2">Loading...</p>
-      </div>}
-      {url && <iframe width={"100%"} height={"100%"} src={url} />}
+    <div className="h-full flex flex-col">
+      <div className="p-2 bg-zinc-900 border-b border-zinc-800 flex items-center">
+        <button
+          className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
+          onClick={onRefresh}
+          title="Refresh Preview"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+        {previewUrl && (
+          <div className="ml-2 text-xs text-gray-400 truncate">
+            {previewUrl}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 bg-white">
+        <iframe
+          ref={iframeRef}
+          className="w-full h-full border-none"
+          title="Preview"
+          sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+        />
+      </div>
     </div>
   );
 }

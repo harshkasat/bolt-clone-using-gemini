@@ -275,7 +275,7 @@ export function Builder() {
               {activeTab === 'code' ? (
                 <CodeEditor file={selectedFile} />
               ) : (
-                {webcontainer && <PreviewFrame webContainer={webcontainer} files={files} />}
+                <PreviewFrame webContainer={webcontainer} files={files} />
               )}
             </div>
           </div>
