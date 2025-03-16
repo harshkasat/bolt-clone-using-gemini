@@ -28,7 +28,7 @@ function Home() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center z-50">
-      <div className="text-2xl font-bold italic" style={{ fontFamily: "'Funnel Display', sans-serif"}}>bolt</div>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Funnel Display', sans-serif"}}>Cognito Dev</div>
       <SignedOut>
         <SignInButton id="clerk-sign-in-button" mode="modal" />
       </SignedOut>
