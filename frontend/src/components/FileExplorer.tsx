@@ -22,13 +22,11 @@ export function FileExplorer({
   const getFilesFromContents = () => {
     const newFiles: Array<{ name: string; path: string; isFolder: boolean; icon: JSX.Element }> = [];
     const paths = Object.keys(fileContents);
-    console.log("Paths "+paths + " ")
     
     // First add all root level files and folders
     paths.forEach(path => {
       const parts = path.split('/');
       if (parts.length === 1) {
-        console.log("root level "+parts[0])
         // Root level file
         newFiles.push({
           name: parts[0],
@@ -38,7 +36,6 @@ export function FileExplorer({
         });
       } else if (!newFiles.find(f => f.path === parts[0])) {
         // Root level folder
-        console.log("root level folder "+parts[0])
         newFiles.push({
           name: parts[0],
           path: parts[0],
@@ -52,7 +49,6 @@ export function FileExplorer({
     paths.forEach(path => {
       const parts = path.split('/');
       if (parts.length > 1) {
-        console.log("nested files "+path)
         newFiles.push({
           name: parts[parts.length - 1],
           path: path,
@@ -61,11 +57,6 @@ export function FileExplorer({
         });
       }
     });
-    console.log("newFiles " + newFiles.map((x) => {
-      console.log("Name of file " +x.name,
-      console.log("Path of file " +x.path)
-      )
-    }))
     return newFiles;
   };
   

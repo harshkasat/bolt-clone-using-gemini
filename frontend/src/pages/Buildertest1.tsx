@@ -18,11 +18,12 @@ import { FileExplorer } from "../components/FileExplorer"
 import { CodeEditor } from "../components/CodeEditor"
 import { PreviewFrame } from "../components/PreviewFrame"
 import { Terminal } from "../components/Terminal"
+
 import axios from "axios";
 import { BACKEND_URL } from "../config"; // Make sure this is accessible
-import { parseXml } from "../steps"
-import { Step, StepType } from "../types"
 import { useLocation } from 'react-router-dom';
+import { parseResponse } from "../lib/xmlParse"
+
 
 // Add this utility function at the top level before the BuilderTest component
 async function processStream(stream: ReadableStream, onData: (data: string) => void) {
@@ -50,80 +51,73 @@ function BuilderTest() {
   const [previewUrl, setPreviewUrl] = useState<string>("")
   const [serverStatus, setServerStatus] = useState<string>("Starting...")
   const chatContainerRef = useRef<HTMLDivElement>(null)
-  const [webcontainerInstance, setWebcontainerInstance] = useState<any>(null)
-  const [fileContents, setFileContents] = useState<Record<string, string>>({
-    'index.html': '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n  <title>React App</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>',
-    'package.json': '{\n  "name": "react-app",\n  "private": true,\n  "version": "0.0.0",\n  "type": "module",\n  "scripts": {\n    "dev": "vite --host",\n    "build": "tsc && vite build",\n    "preview": "vite preview"\n  },\n  "dependencies": {\n    "react": "^18.2.0",\n    "react-dom": "^18.2.0"\n  },\n  "devDependencies": {\n    "@types/react": "^18.2.15",\n    "@types/react-dom": "^18.2.7",\n    "@vitejs/plugin-react": "^4.0.3",\n    "typescript": "^5.0.2",\n    "vite": "^4.4.5"\n  }\n}',
-    'src/App.tsx': 'import React from "react";\n\nfunction App() {\n  return (\n    <div style={{ padding: "20px", fontFamily: "Arial" }}>\n      <h1>Hello from React!</h1>\n      <p>If you can see this, your app is working correctly.</p>\n    </div>\n  );\n}\n\nexport default App;',
-    'src/index.css': 'body {\n  margin: 0;\n  padding: 0;\n  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;\n}\n\n#root {\n  height: 100%;\n}',
-    'src/main.tsx': 'import React from "react";\nimport ReactDOM from "react-dom/client";\nimport App from "./App";\nimport "./index.css";\n\nReactDOM.createRoot(document.getElementById("root")!).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>\n);',
-    'vite.config.ts': 'import { defineConfig } from "vite";\nimport react from "@vitejs/plugin-react";\n\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    hmr: true,\n  },\n});',
-    'tsconfig.json': '{\n  "compilerOptions": {\n    "target": "ES2020",\n    "useDefineForClassFields": true,\n    "lib": ["ES2020", "DOM", "DOM.Iterable"],\n    "module": "ESNext",\n    "skipLibCheck": true,\n    "moduleResolution": "bundler",\n    "allowImportingTsExtensions": true,\n    "resolveJsonModule": true,\n    "isolatedModules": true,\n    "noEmit": true,\n    "jsx": "react-jsx",\n    "strict": true,\n    "noUnusedLocals": true,\n    "noUnusedParameters": true,\n    "noFallthroughCasesInSwitch": true\n  },\n  "include": ["src"],\n  "references": [{ "path": "./tsconfig.node.json" }]\n}',
-    'tsconfig.node.json': '{\n  "compilerOptions": {\n    "composite": true,\n    "skipLibCheck": true,\n    "module": "ESNext",\n    "moduleResolution": "bundler",\n    "allowSyntheticDefaultImports": true\n  },\n  "include": ["vite.config.ts"]\n}'
-  })
+  const [webcontainerInstance, setWebcontainerInstance] = useState<WebContainer | null>(null)
+  const [fileContents, setFileContents] = useState<Record<string, string>>({})
   const [terminalVisible, setTerminalVisible] = useState(true)
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
-
-  // Add these to your state variables
-  const [loading, setLoading] = useState(false);
-  const [steps, setSteps] = useState<Step[]>([]);
-  const [llmMessages, setLlmMessages] = useState<{role: "user" | "assistant", parts: { text: string }[];}[]>([]);
   const location = useLocation();
   const {prompt}  = location.state as { prompt: string };
+
+
+
+  const [loading, setLoading] = useState(false);
+  const [llmMessages, setLlmMessages] = useState<{role: "user" | "assistant", parts: { text: string }[];}[]>([]);
+  const [webContainerBoot, setWebcontainerBoot] = useState(true);
   
 
+  // Log updated state
+  useEffect(() => {
+    initializeWithTemplate(prompt)
+  }, []); // This will trigger whenever fileContents updates
+  
   useEffect(() => {
 
-    
+    if (Object.keys(fileContents).length === 0) {
+      console.log("Waiting for fileContents to be populated...");
+      return; // Don't run WebContainer until fileContents is updated
+    }
+
     async function bootWebContainer() {
       try {
         // Boot WebContainer
-        const updatedFileContents = await initializeWithTemplate(prompt);
-        await new Promise(resolve => setTimeout(resolve, 600));
-        const instance = await WebContainer.boot()
-        setWebcontainerInstance(instance)
+        if (webContainerBoot) {
+          const instance = await WebContainer.boot()
+          await instance.fs.mkdir('src')
+          setWebcontainerInstance(instance)
+          setWebcontainerBoot(false)
+        }
         
         // Add terminal message
         addTerminalMessage("WebContainer booted successfully")
         setServerStatus("Setting up files...")
         
         // Create file system structure
-        await instance.fs.mkdir('src')
         
         // Mount all files
-        if (updatedFileContents){
-          for (const [path, content] of Object.entries(updatedFileContents)) {
-            // Check if we need to create parent directories
-            console.log("Writing file: " + path)
-            const dirPath = path.includes('/') ? path.split('/').slice(0, -1).join('/') : null
-            
-            if (dirPath && dirPath !== 'src') {
+        await Promise.all(
+          Object.entries(fileContents).map(async ([path, content]) => {
+            // Ensure all parent directories exist
+            const dirPath = path.includes("/") ? path.split("/").slice(0, -1).join("/") : null;
+        
+            if (dirPath) {
               try {
-                await instance.fs.mkdir(dirPath, { recursive: true })
+                await webcontainerInstance.fs.mkdir(dirPath, { recursive: true }); // Ensure all parent directories exist
               } catch (error) {
-                console.log(`Directory ${dirPath} may already exist:`, error)
+                console.log(`Directory ${dirPath} may already exist:`, error);
               }
             }
-            
-            // Write the file
-            await instance.fs.writeFile(path, content)
-          }
-        }
         
-        // Add this verification step after writing files
-        // Verify package.json was written correctly
-        try {
-          const packageContent = await instance.fs.readFile('package.json', 'utf-8');
-          addTerminalMessage("package.json content before install: " + packageContent.substring(0, 50) + "...");
-        } catch (error) {
-          addTerminalMessage("Error verifying package.json: " + error.message);
-        }
+            // Write the file
+            await webcontainerInstance.fs.writeFile(path, content);
+          })
+        );
+        
 
         addTerminalMessage("File system created")
         setServerStatus("Installing dependencies...")
 
         // Install dependencies
-        const installProcess = await instance.spawn('npm', ['install'])
+        const installProcess = await webcontainerInstance.spawn('npm', ['install'])
         
         processStream(installProcess.output, (data) => {
           addTerminalMessage(data);
@@ -141,7 +135,7 @@ function BuilderTest() {
         setServerStatus("Starting dev server...");
         addTerminalMessage("Starting Vite development server...");
         
-        const devProcess = await instance.spawn('npx', ['vite', '--host']);
+        const devProcess = await webcontainerInstance.spawn('npx', ['vite', '--host']);
         
         processStream(devProcess.output, (data) => {
           addTerminalMessage(data);
@@ -162,7 +156,7 @@ function BuilderTest() {
         });
 
         // Listen for the server-ready event
-        instance.on('server-ready', (port, url) => {
+        webcontainerInstance.on('server-ready', (port: number, url: string) => {
           console.log(`Server ready event: port ${port}, URL ${url}`)
           setPreviewUrl(url)
           setServerStatus("Server ready")
@@ -177,155 +171,69 @@ function BuilderTest() {
     }
     
     bootWebContainer()
-  }, [])
+  }, [fileContent])
 
-  // Function to initialize with template
-  async function initializeWithTemplate(userPrompt:string) {
+
+  async function initializeWithTemplate(userPrompt: string) {
     setLoading(true);
     try {
-      // First get template
-      const response = await axios.post(`${BACKEND_URL}/template`, {
+      // Fetch template response and parse
+      const templateResponse = await axios.post(`${BACKEND_URL}/template`, {
         prompt: userPrompt.trim()
       });
-      
-      const { prompts, uiPrompts } = response.data;
-      
-      // Parse template steps
-      const templateSteps = parseXml(uiPrompts[0]).map(x => ({
-        ...x,
-        status: "pending" as "pending"
-      }));
-      
-      // Set initial steps
-      setSteps(templateSteps);
-      
-      // Now send to chat
+      const {prompts, uiPrompts} = templateResponse.data;
+      const templateSteps = parseResponse(uiPrompts[0]);
+      setServerStatus("Template created succesfully")
+
+      // Fetch chat response and parse
+      setServerStatus("Waiting for fileContents to be populated...")
       const chatResponse = await axios.post(`${BACKEND_URL}/chat`, {
-        messages: [...prompts, userPrompt].map(content => ({
+        messages: [...templateResponse.data.prompts, userPrompt].map(content => ({
           role: "user",
           parts: [{ text: content }]
         }))
       });
+      const chatSteps = parseResponse(chatResponse.data.response);
       
-      // Parse chat response steps
-      const chatSteps = parseXml(chatResponse.data.response).map(x => ({
-        ...x,
-        status: "pending"
-      }));
-      
-
-
-       setSteps(s => [...s, ...parseXml(chatResponse.data.response).map(x => ({
-            ...x,
-            status: "pending" as "pending"
-          }))]);
-      
-      // Update LLM messages
-      setLlmMessages([
-        ...prompts.map(content => ({
-          role: "user" as const,
-          parts: [{ text: content }]
-        })),
-        {
-          role: "assistant",
-          parts: [{ text: chatResponse.data.response }]
-        }
-      ]);
-      
-    } catch (error) {
-      console.error("Error initializing with template:", error);
-      addTerminalMessage(`Error: ${error.message}`);
-    return fileContent
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Function to handle chat messages
-  async function handleChatMessage(message:string) {
-    setLoading(true);
-    try {
-      // Add user message to chat
-      const newMessage = {
+      //  Saving llm resposne so we can use for chat
+      setLlmMessages([...prompts, prompt].map(content => ({
         role: "user",
-        parts: [{ text: message }]
-      };
-      
-      // Send to chat API
-      const stepsResponse = await axios.post(`${BACKEND_URL}/chat`, {
-        messages: [...llmMessages, newMessage]
-      });
-      
-      // Update messages
-      setLlmMessages(prev => [
+        parts: [
+          {
+            text:content
+          }
+        ]
+      })));
+  
+      setLlmMessages(x => [...x, {
+        role: "assistant", 
+        parts: [{
+          text:chatResponse.data.response
+        }]
+      }])
+
+      // Merge templateSteps and chatSteps into fileContents
+      setFileContents((prev) => ({
         ...prev,
-        {
-          role: "assistant",
-          parts: [{ text: stepsResponse.data.response}]
-        }
-      ]);
-      
-      // Parse new steps
-      const newSteps = parseXml(stepsResponse.data.response).map(x => ({
-        ...x,
-       status: "pending" as "pending"
+        ...templateSteps,
+        ...chatSteps // Ensure chatSteps are also added
       }));
-      setSteps(prev => [...prev, ...newSteps]);
-      
-      // Process file updates
-      updateFilesFromSteps(newSteps);
-      
-    } catch (error) {
-      console.error("Error sending chat message:", error);
-      addTerminalMessage(`Error: ${error.message}`);
-    } finally {
+
+      return { templateSteps, chatSteps };
+      } 
+    catch (error) {
+      console.error("Error initializing with template:", error);
+      addTerminalMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return { templateSteps: [], chatSteps: [] };
+    } 
+    finally {
       setLoading(false);
     }
   }
 
-  // Function to update files from steps
-  type StepUpdate = Step & { status: 'pending' | 'completed' };
-
-  function updateFilesFromSteps(stepsToUpdate: StepUpdate[]) {
-    const updatedFileContents = { ...fileContents };
-    stepsToUpdate.forEach(step => {
-      if (step.type === StepType.CreateFile && step.path && step.code) {
-        // Convert content to Uint8Array when writing to WebContainer
-        const encoder = new TextEncoder();
-        const encodedContent = encoder.encode(step.code);
-        
-        // Update the file contents state
-        updatedFileContents[step.path] = step.code;
-        
-        // Update WebContainer if available
-        if (webcontainerInstance) {
-          try {
-            webcontainerInstance.fs.writeFile(step.path, encodedContent);
-          } catch (error) {
-            console.error('Failed to write file:', error);
-          }
-        }
-        
-        // Update the currently selected file if it matches
-        if (selectedFile === step.path) {
-          setFileContent(step.code);
-        }
-      }
-    });
-    
-    // Update the file contents state
-    setFileContents(updatedFileContents);
-    
-    // Mark steps as completed
-    setSteps(prev => prev.map(step => ({
-      ...step,
-      status: "completed"
-    })));
-  }
 
   // Helper function to add messages to terminal output
   const addTerminalMessage = (message: string) => {
-    console.log("Terminal:", message);
     setTerminalOutput(prev => [...prev, message]);
   };
 
@@ -341,25 +249,69 @@ function BuilderTest() {
     }
   }, [selectedFile, fileContents])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
+    setServerStatus("Making changes in file")
     if (inputMessage.trim()) {
-      // Add user message to UI
-      setMessages((prev) => [...prev, { text: inputMessage, isUser: true }]);
-      
-      // Process with chat API
-      handleChatMessage(inputMessage);
-      
-      // Clear input
-      setInputMessage("");
-      
+      setMessages((prev) => [...prev, { text: inputMessage, isUser: true }])
+
+      // Simulate AI response
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: "I'm analyzing your code. making relevant changes?",
+            isUser: false,
+          },
+        ])
+
+        // Scroll to bottom of chat
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+        }
+      }, 1000)
+      setInputMessage("")
+
       // Scroll to bottom of chat
       setTimeout(() => {
         if (chatContainerRef.current) {
-          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
         }
-      }, 100);
+      }, 100)
+
+      // Fetch chat response and parse
+      console.log(inputMessage)
+      const newMessage = {
+        role: "user" as "user",
+        parts: [{
+          text:inputMessage
+        }]
+        
+      };
+      const updatedMessages = [...llmMessages, newMessage];
+      setLlmMessages(updatedMessages);
+      console.log(updatedMessages);
+      
+      const chatResponse = await axios.post(`${BACKEND_URL}/chat`, {
+        messages: updatedMessages });
+      const chatSteps = parseResponse(chatResponse.data.response);
+      
+      //  Saving llm resposne so we can use for chat
+  
+      setLlmMessages(x => [...x, {
+        role: "assistant", 
+        parts: [{
+          text:chatResponse.data.response
+        }]
+      }])
+
+      // Merge templateSteps and chatSteps into fileContents
+      setFileContents((prev) => ({
+        ...prev,
+        ...chatSteps // Ensure chatSteps are also added
+      }));
+      setServerStatus("All changes are done")
     }
-  };
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

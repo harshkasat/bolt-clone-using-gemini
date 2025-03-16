@@ -1,14 +1,25 @@
-import React from 'react';
-import { ChevronRight, Link, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { useNavigate } from 'react-router-dom';
+
 import { BorderTrail } from '../components/ui/border-trail';
 
 function HomeTest() {
+    const [prompt, setPrompt] = useState('');
+    const navigate = useNavigate();
+
+    const handleSubmit = () => {
+      // e.preventDefault();
+
+        navigate('/builderTest', { state: { prompt } });
+    };
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center z-50">
-        <div className="text-2xl font-bold">bolt</div>
+        <div className="text-2xl font-bold italic" style={{ fontFamily: "'Funnel Display', sans-serif"}}>bolt</div>
       </header>
 
       {/* New Feature Banner */}
@@ -30,36 +41,50 @@ function HomeTest() {
           </p>
 
           {/* Input Box */}
-          <div className="max-w-2xl mx-auto">
-            <div className="relative h-[160px] w-full overflow-hidden rounded-md border border-zinc-800 bg-gray-900/50 backdrop-blur-sm text-zinc-300">
+            <form 
+              className="max-w-2xl mx-auto">
+              <div className="relative h-[120px] w-full overflow-hidden rounded-md border border-zinc-800 bg-gray-900/50 backdrop-blur-sm text-zinc-300">
               <textarea 
-                className="h-full w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm outline-none" 
+                className="h-full w-full resize-none rounded-md bg-transparent px-4 py-4 text-sm outline-none" 
                 placeholder="How can Bolt help you today?"
+                style={{ fontSize: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    handleSubmit();
+                  }
+                }}
               />
               <BorderTrail
                 className="bg-gradient-to-l from-blue-400/20 via-blue-500/40 to-blue-400/20"
                 size={120}
               />
-              <div className="absolute bottom-3 right-3 flex gap-2 text-gray-500">
-                <Link size={18} />
-                <Sparkles size={18} />
               </div>
-            </div>
-          </div>
+
+            </form>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap justify-center gap-2 mt-8">
-            <Button className="bg-gray-800 hover:bg-gray-700">Import from Figma</Button>
-            <Button className="bg-gray-800 hover:bg-gray-700">Build a mobile app with Expo</Button>
-            <Button className="bg-gray-800 hover:bg-gray-700">Start a blog with Astro</Button>
+            <Button 
+              className="bg-gray-800 hover:bg-gray-700" 
+              onClick={() => {
+              setPrompt('Build a Todo Application');
+              handleSubmit();
+              }}
+            >
+              Build a Todo Application
+            </Button>
+            <Button className="bg-gray-800 hover:bg-gray-700">Build a payment Dashboard</Button>
+            <Button className="bg-gray-800 hover:bg-gray-700">Start a blog Page</Button>
           </div>
 
           {/* Secondary Buttons */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {/* <div className="flex flex-wrap justify-center gap-2 mt-4">
             <Button variant="ghost" className="text-gray-400 hover:text-white">Create a docs site with Vitepress</Button>
             <Button variant="ghost" className="text-gray-400 hover:text-white">Scaffold UI with shadcn</Button>
             <Button variant="ghost" className="text-gray-400 hover:text-white">Draft a presentation with Slidev</Button>
-          </div>
+          </div> */}
 
           {/* Footer Text */}
         </div>

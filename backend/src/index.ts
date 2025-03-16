@@ -5,6 +5,7 @@ import {basePrompt as nextBasePrompt} from "./defaults/next";
 import express, { response } from "express";
 
 import cors from "cors";
+import { parseResponse } from "./xmlParse";
 
 
 
@@ -44,7 +45,7 @@ app.post('/template', async (req, res) =>{
     });
 
     const answer = result.response.text().toLowerCase().trim();
-    console.log('Template response:', answer);
+    // console.log('Template response:', answer);
 
     if (answer.includes('react')){
         res.json({
@@ -93,4 +94,15 @@ app.post('/chat', async(req, res) => {
     return;
 })
 
+
+app.post('/stripxml', async(req, res) =>{
+    const xmlbody = req.body.xmlBody;
+    const fileContent = parseResponse(xmlbody)
+    
+    res.status(200).json({
+        'jsonBody':fileContent,
+    })
+    return;
+
+})
 app.listen(3000);
