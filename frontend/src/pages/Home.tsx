@@ -1,25 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useUser, SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 
 import { BorderTrail } from '../components/ui/border-trail';
 
 function Home() {
-    const [prompt, setPrompt] = useState('');
+    const [inputValue, setInputValue] = useState('');
+
     const navigate = useNavigate();
+    const { isSignedIn } = useUser(); // Get the user's signed-in status
 
-    const handleSubmit = () => {
-      // e.preventDefault();
-
-        navigate('/builder', { state: { prompt } });
+    const handleSubmit = (prompt:string) => {
+      if (!isSignedIn) {
+        const signInButton = document.getElementById("clerk-sign-in-button");
+        if (signInButton) {
+        signInButton.click(); // Trigger Clerk login
+        }
+        return;
+      }
+      navigate('/builder', { state: { prompt } });
+      // console.log(prompt)
     };
-  
-  return (
+    
+    return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center z-50">
-        <div className="text-2xl font-bold italic" style={{ fontFamily: "'Funnel Display', sans-serif"}}>bolt</div>
+      <div className="text-2xl font-bold italic" style={{ fontFamily: "'Funnel Display', sans-serif"}}>bolt</div>
+      <SignedOut>
+        <SignInButton id="clerk-sign-in-button" mode="modal" />
+      </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
       </header>
 
       {/* New Feature Banner */}
@@ -48,11 +63,12 @@ function Home() {
                 className="h-full w-full resize-none rounded-md bg-transparent px-4 py-4 text-sm outline-none" 
                 placeholder="How can Bolt help you today?"
                 style={{ fontSize: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
-                    handleSubmit();
+                    e.preventDefault();
+                    handleSubmit(inputValue);
                   }
                 }}
               />
@@ -69,24 +85,29 @@ function Home() {
             <Button 
               className="bg-gray-800 hover:bg-gray-700" 
               onClick={() => {
-              setPrompt('Build a Todo Application');
-              handleSubmit();
+                handleSubmit("Build a Todo Application");
               }}
             >
               Build a Todo Application
             </Button>
-            <Button className="bg-gray-800 hover:bg-gray-700">Build a payment Dashboard</Button>
-            <Button className="bg-gray-800 hover:bg-gray-700">Start a blog Page</Button>
+            <Button 
+              className="bg-gray-800 hover:bg-gray-700"
+              onClick={() => {
+                handleSubmit("Build a payment Dashboard");
+              }}
+            > 
+              Build a payment Dashboard
+            </Button>
+            <Button 
+              className="bg-gray-800 hover:bg-gray-700"
+              onClick={() => {
+                handleSubmit("Start a blog Page");
+              }}
+              >
+                Start a blog Page
+              </Button>
           </div>
 
-          {/* Secondary Buttons */}
-          {/* <div className="flex flex-wrap justify-center gap-2 mt-4">
-            <Button variant="ghost" className="text-gray-400 hover:text-white">Create a docs site with Vitepress</Button>
-            <Button variant="ghost" className="text-gray-400 hover:text-white">Scaffold UI with shadcn</Button>
-            <Button variant="ghost" className="text-gray-400 hover:text-white">Draft a presentation with Slidev</Button>
-          </div> */}
-
-          {/* Footer Text */}
         </div>
       </main>
 
