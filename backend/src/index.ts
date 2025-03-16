@@ -5,7 +5,6 @@ import {basePrompt as nextBasePrompt} from "./defaults/next";
 import express, { response } from "express";
 
 import cors from "cors";
-import { parseResponse } from "./xmlParse";
 
 
 
@@ -95,14 +94,14 @@ app.post('/chat', async(req, res) => {
 })
 
 
-app.post('/stripxml', async(req, res) =>{
-    const xmlbody = req.body.xmlBody;
-    const fileContent = parseResponse(xmlbody)
+// app.post('/stripxml', async(req, res) =>{
+//     const xmlbody = req.body.xmlBody;
+//     const fileContent = parseResponse(xmlbody)
     
-    res.status(200).json({
-        'jsonBody':fileContent,
-    })
-    return;
+//     res.status(200).json({
+//         'jsonBody':fileContent,
+//     })
+//     return;
 
-})
+// })
 app.listen(3000);

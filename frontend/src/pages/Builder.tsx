@@ -28,14 +28,29 @@ import { parseResponse } from "../lib/xmlParse"
 // Add this utility function at the top level before the BuilderTest component
 async function processStream(stream: ReadableStream, onData: (data: string) => void) {
   const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  let isClosed = false;
   
   try {
-    while (true) {
+    while (!isClosed) {
       const { done, value } = await reader.read();
-      if (done) break;
-      onData(value);
+      if (done) {
+        isClosed = true;
+        break;
+      }
+      if (value) {
+        onData(value);
+      }
     }
+  } catch (error) {
+    console.warn('Stream processing ended:', error);
   } finally {
+    if (!isClosed) {
+      try {
+        await reader.cancel();
+      } catch (error) {
+        console.warn('Error canceling stream:', error);
+      }
+    }
     reader.releaseLock();
   }
 }
@@ -51,15 +66,15 @@ function Builder() {
   const [previewUrl, setPreviewUrl] = useState<string>("")
   const [serverStatus, setServerStatus] = useState<string>("Starting...")
   const chatContainerRef = useRef<HTMLDivElement>(null)
-  const [webcontainerInstance, setWebcontainerInstance] = useState<WebContainer | null>(null)
   const [fileContents, setFileContents] = useState<Record<string, string>>({})
   const [terminalVisible, setTerminalVisible] = useState(true)
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
   const location = useLocation();
   const {prompt}  = location.state as { prompt: string };
-
-
-
+  
+  
+  
+  const [webcontainerInstance, setWebcontainerInstance] = useState<WebContainer | null>(null)
   const [loading, setLoading] = useState(false);
   const [llmMessages, setLlmMessages] = useState<{role: "user" | "assistant", parts: { text: string }[];}[]>([]);
   const [webContainerBoot, setWebcontainerBoot] = useState(true);
@@ -71,7 +86,6 @@ function Builder() {
   }, []); // This will trigger whenever fileContents updates
   
   useEffect(() => {
-
     if (Object.keys(fileContents).length === 0) {
       console.log("Waiting for fileContents to be populated...");
       return; // Don't run WebContainer until fileContents is updated
@@ -81,65 +95,62 @@ function Builder() {
       try {
         // Boot WebContainer
         if (webContainerBoot) {
-          const instance = await WebContainer.boot()
-          await instance.fs.mkdir('src')
-          setWebcontainerInstance(instance)
-          setWebcontainerBoot(false)
+          const instance = await WebContainer.boot();
+          await instance.fs.mkdir('src');
+          setWebcontainerInstance(instance);
+          setWebcontainerBoot(false);
         }
-        
+
+        if (!webcontainerInstance) {
+          throw new Error("WebContainer instance is not initialized.");
+        }
+
         // Add terminal message
-        addTerminalMessage("WebContainer booted successfully")
-        setServerStatus("Setting up files...")
-        
-        // Create file system structure
-        
+        addTerminalMessage("WebContainer booted successfully");
+        setServerStatus("Setting up files...");
+
         // Mount all files
         await Promise.all(
           Object.entries(fileContents).map(async ([path, content]) => {
-            // Ensure all parent directories exist
             const dirPath = path.includes("/") ? path.split("/").slice(0, -1).join("/") : null;
-        
+
             if (dirPath) {
               try {
-                await webcontainerInstance.fs.mkdir(dirPath, { recursive: true }); // Ensure all parent directories exist
+                await webcontainerInstance.fs.mkdir(dirPath, { recursive: true });
               } catch (error) {
                 console.log(`Directory ${dirPath} may already exist:`, error);
               }
             }
-        
-            // Write the file
+
             await webcontainerInstance.fs.writeFile(path, content);
           })
         );
-        
 
-        addTerminalMessage("File system created")
-        setServerStatus("Installing dependencies...")
+        addTerminalMessage("File system created");
+        setServerStatus("Installing dependencies...");
 
         // Install dependencies
-        const installProcess = await webcontainerInstance.spawn('npm', ['install'])
-        
-        processStream(installProcess.output, (data) => {
+        const installProcess = await webcontainerInstance.spawn('npm', ['install']);
+        await processStream(installProcess.output, (data) => {
           addTerminalMessage(data);
         });
-        
+
         const installExitCode = await installProcess.exit;
         addTerminalMessage(`npm install completed with exit code ${installExitCode}`);
-        
+
         if (installExitCode !== 0) {
           setServerStatus("Error installing dependencies");
           return;
         }
-        
+
         // Start development server
         setServerStatus("Starting dev server...");
         addTerminalMessage("Starting Vite development server...");
-        
+
         const devProcess = await webcontainerInstance.spawn('npx', ['vite', '--host']);
-        
-        processStream(devProcess.output, (data) => {
+        await processStream(devProcess.output, (data) => {
           addTerminalMessage(data);
-          
+
           if (data.includes('Local:') && data.includes('http')) {
             try {
               const urlMatch = data.match(/Local:\s+(https?:\/\/[^\s]+)/);
@@ -155,23 +166,22 @@ function Builder() {
           }
         });
 
-        // Listen for the server-ready event
         webcontainerInstance.on('server-ready', (port: number, url: string) => {
-          console.log(`Server ready event: port ${port}, URL ${url}`)
-          setPreviewUrl(url)
-          setServerStatus("Server ready")
-          addTerminalMessage(`Server ready on ${url}`)
-        })
+          console.log(`Server ready event: port ${port}, URL ${url}`);
+          setPreviewUrl(url);
+          setServerStatus("Server ready");
+          addTerminalMessage(`Server ready on ${url}`);
+        });
 
       } catch (error) {
-        console.error('Failed to boot WebContainer:', error)
-        setServerStatus(`Error: ${error.message || 'Unknown error'}`)
-        addTerminalMessage(`ERROR: ${error.message || 'Unknown error'}`)
+        console.error('Failed to boot WebContainer:', error);
+        setServerStatus(`Error: ${error.message || 'Unknown error'}`);
+        addTerminalMessage(`ERROR: ${error.message || 'Unknown error'}`);
       }
     }
-    
-    bootWebContainer()
-  }, [fileContent])
+
+    bootWebContainer();
+  }, [fileContents, webcontainerInstance]);
 
 
   async function initializeWithTemplate(userPrompt: string) {
