@@ -41,7 +41,7 @@ function Home() {
       <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50">
         <Button variant="ghost" className="bg-gray-800/50 backdrop-blur-sm text-gray-300 hover:text-white gap-2">
           <Sparkles size={16} />
-          New! Introducing Figma to Bolt
+          New! Introducing Cognito Dev powered by Gemini AI
         </Button>
       </div>
 
@@ -120,7 +120,7 @@ function Home() {
           <button className="hover:text-white">Privacy</button>
         </div>
         <div className="flex items-center gap-2">
-          <span>StackBlitz</span>
+          <span>Cognito Dev</span>
         </div>
       </footer>
     </div>
