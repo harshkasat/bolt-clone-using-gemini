@@ -95,10 +95,17 @@ function Builder() {
       try {
         // Boot WebContainer
         if (webContainerBoot) {
-          const instance = await WebContainer.boot();
-          await instance.fs.mkdir('src');
-          setWebcontainerInstance(instance);
-          setWebcontainerBoot(false);
+            try {
+            const instance = await WebContainer.boot();
+            await instance.fs.mkdir('src');
+            setWebcontainerInstance(instance);
+            setWebcontainerBoot(false);
+            } catch (error) {
+            console.error('Failed to boot WebContainer one catch:', error);
+            setServerStatus(`Boot Error: ${error.message}`);
+            addTerminalMessage(`WebContainer boot failed: ${error.message}`);
+            throw error; // Re-throw to be caught by outer try-catch
+            }
         }
 
         if (!webcontainerInstance) {
