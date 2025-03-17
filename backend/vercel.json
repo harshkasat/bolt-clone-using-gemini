@@ -6,10 +6,20 @@
         "use": "@vercel/node"
       }
     ],
-    "routes": [
+    "headers": [
       {
-        "src": "/(.*)",
-        "dest": "/dist/index.js"
+        "source": "/(.*)",
+        "headers": [
+          {
+            "key": "Cross-Origin-Embedder-Policy",
+            "value": "require-corp"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin"
+          }
+        ]
       }
-    ]
+    ],
+    "rewrites": [{ "source": "/(.*)", "destination": "/dist/index.js" }]
   }
