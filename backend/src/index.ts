@@ -18,24 +18,7 @@ const model = genAI.getGenerativeModel({
 });
 
 const app = express();
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'https://www.cognitodev.space/', // Replace with your actual Vercel domain
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use((req, res, next) => {
-    // This helps with cross-origin resource sharing
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    
-    // Optional: these should be set on your Vercel deployment, but you can also set them here
-    // as a fallback if you control the full proxy path
-    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    
-    next();
-});
-
+app.use(cors());
 app.use(express.json())
 
 
