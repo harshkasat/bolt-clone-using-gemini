@@ -178,6 +178,7 @@ function Builder() {
         if (error.message.includes("Unable to create more instances")) {
           setServerStatus("Please close other tabs/applications to free resources and refresh");
           addTerminalMessage("ERROR: System resources insufficient for WebContainer. Try closing other tabs or applications.");
+        }
         setServerStatus(`Error: ${error.message || 'Unknown error'}`);
         addTerminalMessage(`ERROR: ${error.message || 'Unknown error'}`);
       }
