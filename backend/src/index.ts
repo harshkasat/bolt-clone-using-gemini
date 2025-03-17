@@ -18,9 +18,20 @@ const model = genAI.getGenerativeModel({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin:[],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    exposedHeaders: ['Cross-Origin-Embedder-Policy', 'Cross-Origin-Opener-Policy']
+}));
 app.use(express.json())
 
+app.use((req, res, next) => {
+    // Set COOP/COEP headers
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    next();
+  });
 
 app.get('/', async(req, res) =>{
     res.send({

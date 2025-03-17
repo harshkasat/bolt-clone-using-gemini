@@ -96,15 +96,19 @@ function Builder() {
         // Boot WebContainer
         if (webContainerBoot) {
             try {
-            const instance = await WebContainer.boot();
-            await instance.fs.mkdir('src');
-            setWebcontainerInstance(instance);
-            setWebcontainerBoot(false);
+              const instance = await WebContainer.boot();
+              await instance.fs.mkdir('src');
+              setWebcontainerInstance(instance);
+              setWebcontainerBoot(false);
             } catch (error) {
-            console.error('Failed to boot WebContainer one catch:', error);
-            setServerStatus(`Boot Error: ${error.message}`);
-            addTerminalMessage(`WebContainer boot failed: ${error.message}`);
-            throw error; // Re-throw to be caught by outer try-catch
+              console.error('Failed to boot WebContainer:', error);
+              if (error.message.includes("SharedArrayBuffer") || error.message.includes("postMessage")) {
+                setServerStatus("Cross-Origin Isolation issue: Headers not properly configured");
+                addTerminalMessage("ERROR: Cross-Origin Isolation is not properly configured. Make sure COOP/COEP headers are set.");
+              } else {
+                setServerStatus(`Error: ${error.message || 'Unknown error'}`);
+                addTerminalMessage(`ERROR: ${error.message || 'Unknown error'}`);
+              }
             }
         }
 
