@@ -18,9 +18,20 @@ const model = genAI.getGenerativeModel({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: [""],
+    methods: ["POST", "GET"],
+    credentials: true
+  }));
 app.use(express.json())
 
+
+app.get('/', async(req, res) =>{
+    res.send({
+        'message':"Server is running"
+    })
+    return;
+})
 
 app.post('/template', async (req, res) =>{
 
@@ -105,9 +116,9 @@ app.post('/chat', async(req, res) => {
 
 // })
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(3000, () => {
+    app.listen(8000, () => {
       console.log('Server running on port 3000');
     });
   }
 
-export default app; 
+module.exports =  app;
