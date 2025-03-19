@@ -60,7 +60,7 @@ function Builder() {
   const [selectedFile, setSelectedFile] = useState<string>("index.html")
   const [fileContent, setFileContent] = useState<string>("")
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean }>>([
-    { text: "Welcome to Bolt! How can I help you today?", isUser: false },
+    { text: "Welcome to Cognito dev! How can I help you today?", isUser: false },
   ])
   const [inputMessage, setInputMessage] = useState("")
   const [previewUrl, setPreviewUrl] = useState<string>("")
@@ -420,7 +420,7 @@ function Builder() {
               <Play className="w-5 h-5" />
             </button>
           </div>
-          <h1 className="text-lg font-medium tracking-tight text-white">Bolt</h1>
+          <h1 className="text-lg font-medium tracking-tight text-white">Cognito Dev</h1>
           <div className="ml-4 text-xs text-gray-400">{serverStatus}</div>
         </div>
         <div className="flex items-center gap-4">

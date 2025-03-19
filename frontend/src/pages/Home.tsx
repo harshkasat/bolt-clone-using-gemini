@@ -61,7 +61,7 @@ function Home() {
               <div className="relative h-[120px] w-full overflow-hidden rounded-md border border-zinc-800 bg-gray-900/50 backdrop-blur-sm text-zinc-300">
               <textarea 
                 className="h-full w-full resize-none rounded-md bg-transparent px-4 py-4 text-sm outline-none" 
-                placeholder="How can Bolt help you today?"
+                placeholder="How can Cognito Dev help you today?"
                 style={{ fontSize: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
