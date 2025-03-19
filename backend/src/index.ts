@@ -37,21 +37,29 @@ app.use(express.json())
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     // Set COOP/COEP headers
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
         res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-        res.setHeader('Access-Control-Allow-Origin', origin || '*'); // Important for CORS
+        res.setHeader('Access-Control-Allow-Origin', origin); // Important for CORS
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
         next();
-    } else {
-        res.status(403).send({
-            message: 'Hey diddy what is this?'
+    } 
+    
+    //  if the origin is undefined (likely a same-origin request) or not allowed, then we don't set the COOP/COEP headers
+    else if (!origin) {
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        next();
+    }else {
+        res.status(403).json({
+            message: `Hey diddy what is this? origin: ${origin}`
         })
     }
   });
 
 app.get('/', async(req, res) =>{
     res.send({
+        'origin': req.headers.origin,
         'message':"Server is running"
     })
     return;
