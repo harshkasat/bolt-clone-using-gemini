@@ -19,7 +19,7 @@ const model = genAI.getGenerativeModel({
 
 const app = express();
 app.use(cors({
-    origin:[],
+    origin:["https://www.cognitodev.space/", "localhost:3000"],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     exposedHeaders: ['Cross-Origin-Embedder-Policy', 'Cross-Origin-Opener-Policy']
@@ -87,7 +87,7 @@ app.post('/template', async (req, res) =>{
     }
 
     res.status(403).json({
-        messsage: "You cant access this"
+        messsage: "Hey diddy what is this?"
     })
     return;
     
@@ -105,8 +105,15 @@ app.post('/chat', async(req, res) => {
         }
     });
 
-    res.json({
-        response: result.response.text()
+    if (result){
+        res.json({
+            response: result.response.text()
+        })
+        return;
+    }
+    
+    res.status(403).json({
+        messsage: "Hey diddy what is this?"
     })
     return;
 })
