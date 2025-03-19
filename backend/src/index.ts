@@ -42,16 +42,16 @@ app.use(express.json())
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
-    if (localhost){
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-        next();
-        return;
-    }
+    // if (localhost){
+    //     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    //     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    //     res.setHeader('Access-Control-Allow-Origin', '*');
+    //     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
+    //     next();
+    //     return;
+    // }
     // Set COOP/COEP headers
-    else if (origin && allowedOrigins.includes(origin)) {
+    if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
         res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
         res.setHeader('Access-Control-Allow-Origin', origin);
