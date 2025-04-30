@@ -16,29 +16,27 @@ const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     systemInstruction: getSystemPrompt(),
 });
+const express = require('express');
+const cors = require('cors');
 
 const app = express();
+
 const allowedOrigins = ['https://launchpad.cognitodev.space'];
-const localhost = process.env.LOCAL_HOST ? true : false;
+
 app.use(cors({
     origin: (origin, callback) => {
-        if (localhost){
+        if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
-            return;
-        }
-        else if (origin && allowedOrigins.includes(origin)) {
-            callback(null, true);
-        }
-        else {
-            callback(new Error('Hey diddy what is this?'));
+        } else {
+            callback(new Error('Blocked by CORS'));
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     exposedHeaders: ['Cross-Origin-Embedder-Policy', 'Cross-Origin-Opener-Policy']
 }));
-app.use(express.json())
 
+app.use(express.json());
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
