@@ -19,18 +19,14 @@ const model = genAI.getGenerativeModel({
 const express = require('express');
 const cors = require('cors');
 
+const express = require('express');
+const cors = require('cors');
+require("dotenv").config();
+
 const app = express();
 
-const allowedOrigins = ['https://launchpad.cognitodev.space'];
-
 app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Blocked by CORS'));
-        }
-    },
+    origin: true, // allow all origins
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     exposedHeaders: ['Cross-Origin-Embedder-Policy', 'Cross-Origin-Opener-Policy']
