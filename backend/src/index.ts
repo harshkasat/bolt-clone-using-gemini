@@ -18,7 +18,7 @@ const model = genAI.getGenerativeModel({
 });
 
 const app = express();
-const allowedOrigins = ['*'];
+const allowedOrigins = ['https://launchpad.cognitodev.space'];
 const localhost = process.env.LOCAL_HOST ? true : false;
 app.use(cors({
     origin: (origin, callback) => {
