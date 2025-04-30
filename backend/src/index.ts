@@ -33,30 +33,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
 
-    // if (localhost){
-    //     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    //     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    //     res.setHeader('Access-Control-Allow-Origin', '*');
-    //     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-    //     next();
-    //     return;
-    // }
-    // Set COOP/COEP headers
-    if (origin && allowedOrigins.includes(origin)) {
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-        next();
-    } else {
-        res.status(403).json({
-            message: `Hey diddy what is this?`
-        })
-    }
-  });
 
 app.get('/', async(req, res) =>{
     res.json({
@@ -82,7 +59,7 @@ app.post('/template', async (req, res) =>{
         ],
         generationConfig: {
             maxOutputTokens: 200,
-            temperature: 0.1,
+         temperature: 0.1,
         }
     });
 
