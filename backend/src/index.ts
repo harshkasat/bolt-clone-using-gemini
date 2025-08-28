@@ -45,16 +45,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// Simplified middleware that doesn't interfere with CORS
-app.use((req, res, next) => {
-    // Set security headers (optional, but good practice)
-    if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    }
-    next();
-});
-
 app.get('/', async(req, res) => {
     res.json({
         'message': "Server is running"
