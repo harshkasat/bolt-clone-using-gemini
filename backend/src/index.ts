@@ -18,7 +18,7 @@ const model = genAI.getGenerativeModel({
 });
 
 const app = express();
-const allowedOrigins = ['https://www.cognitodev.space'];
+const allowedOrigins = ['https://www.cognitodev.space', 'https://launchpad.cognitodev.space'];
 const localhost = process.env.LOCAL_HOST ? true : false;
 app.use(cors({
     origin: (origin, callback) => {
@@ -42,14 +42,14 @@ app.use(express.json())
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
-    // if (localhost){
-    //     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    //     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    //     res.setHeader('Access-Control-Allow-Origin', '*');
-    //     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-    //     next();
-    //     return;
-    // }
+    if (localhost){
+        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
+        next();
+        return;
+    }
     // Set COOP/COEP headers
     if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
