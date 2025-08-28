@@ -2,11 +2,8 @@ import { getSystemPrompt, BASE_PROMPT } from "./prompts";
 import {basePrompt as nodeBasePrompt} from "./defaults/node";
 import {basePrompt as reactBasePrompt} from "./defaults/react";
 import {basePrompt as nextBasePrompt} from "./defaults/next";
-import express, { response } from "express";
-
+import express from "express";
 import cors from "cors";
-
-
 
 require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -16,149 +13,144 @@ const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     systemInstruction: getSystemPrompt(),
 });
-const express = require('express');
-const cors = require('cors');
-
-const express = require('express');
-const cors = require('cors');
-require("dotenv").config();
 
 const app = express();
 const allowedOrigins = ['https://www.cognitodev.space', 'https://launchpad.cognitodev.space'];
 const localhost = process.env.LOCAL_HOST ? true : false;
+
+// Use a single, comprehensive CORS configuration
 app.use(cors({
-    origin: true, // allow all origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or Postman)
+        if (!origin) return callback(null, true);
+        
+        // Allow localhost in development
+        if (localhost || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            return callback(null, true);
+        }
+        
+        // Check if the origin is in our allowed list
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        
+        // Reject the request
+        return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
-    exposedHeaders: ['Cross-Origin-Embedder-Policy', 'Cross-Origin-Opener-Policy']
+    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
-app.use(express.json())
 
+app.use(express.json());
+
+// Simplified middleware that doesn't interfere with CORS
 app.use((req, res, next) => {
-    const origin = req.headers.origin;
-
-    // if (localhost){
-    //     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-    //     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-    //     res.setHeader('Access-Control-Allow-Origin', '*');
-    //     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-    //     next();
-    //     return;
-    // }
-    // Set COOP/COEP headers
-    if (origin && allowedOrigins.includes(origin)) {
+    // Set security headers (optional, but good practice)
+    if (req.headers.origin && allowedOrigins.includes(req.headers.origin)) {
         res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
         res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-        next();
-    } else {
-        res.status(403).json({
-            message: `Hey diddy what is this?`
-        })
     }
-  });
+    next();
+});
 
-app.get('/', async(req, res) =>{
+app.get('/', async(req, res) => {
     res.json({
-        'message':"Server is running"
-    })
-    return;
-})
-
-app.post('/template', async (req, res) =>{
-
-    const prompt = req.body.prompt;
-
-    const result =  await model.generateContent({
-        contents: [
-            {
-                role: "user",
-                parts: [
-                    {
-                        text: "Return either node, react or next based on what do you think this project should be. Only return a single word either 'node', 'react' or 'next' . Do not return anything extra: " + prompt,
-                    }
-                ]
-            }
-        ],
-        generationConfig: {
-            maxOutputTokens: 200,
-         temperature: 0.1,
-        }
+        'message': "Server is running"
     });
+});
 
-    const answer = result.response.text().toLowerCase().trim();
-    // console.log('Template response:', answer);
+app.post('/template', async (req, res) => {
+    try {
+        const prompt = req.body.prompt;
 
-    if (answer.includes('react')){
-        res.json({
-            prompts: [BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
-            uiPrompts: [reactBasePrompt]
-        })
-        return;
+        const result = await model.generateContent({
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        {
+                            text: "Return either node, react or next based on what do you think this project should be. Only return a single word either 'node', 'react' or 'next' . Do not return anything extra: " + prompt,
+                        }
+                    ]
+                }
+            ],
+            generationConfig: {
+                maxOutputTokens: 200,
+                temperature: 0.1,
+            }
+        });
+
+        const answer = result.response.text().toLowerCase().trim();
+
+        if (answer.includes('react')) {
+            res.json({
+                prompts: [BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [reactBasePrompt]
+            });
+            return;
+        }
+        if (answer.includes('node')) {
+            res.json({
+                prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nodeBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [nodeBasePrompt]
+            });
+            return;
+        }
+        if (answer.includes('next')) {
+            res.json({
+                prompts: [BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nextBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [nextBasePrompt]
+            });
+            return;
+        }
+
+        res.status(400).json({
+            message: "Invalid template type"
+        });
+    } catch (error) {
+        console.error('Template error:', error);
+        res.status(500).json({
+            message: "Internal server error"
+        });
     }
-    if (answer.includes('node')){
-        res.json({
-            prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
-            uiPrompts: [nodeBasePrompt]
-        })
-        return;
-    }
-    if (answer.includes('next')){
-        res.json({
-            prompts: [BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
-            uiPrompts: [nextBasePrompt]
-        })
-        return;
-    }
-
-    res.status(403).json({
-        messsage: "Hey diddy what is this?"
-    })
-    return;
-    
-})
-
+});
 
 app.post('/chat', async(req, res) => {
-    const messages = req.body.messages;
+    try {
+        const messages = req.body.messages;
 
-    const result =  await model.generateContent({
-        contents: messages,
-        generationConfig: {
-            maxOutputTokens: 10000,
-            temperature: 0.1,
+        const result = await model.generateContent({
+            contents: messages,
+            generationConfig: {
+                maxOutputTokens: 10000,
+                temperature: 0.1,
+            }
+        });
+
+        if (result) {
+            res.json({
+                response: result.response.text()
+            });
+            return;
         }
-    });
-
-    if (result){
-        res.json({
-            response: result.response.text()
-        })
-        return;
+        
+        res.status(500).json({
+            message: "No response generated"
+        });
+    } catch (error) {
+        console.error('Chat error:', error);
+        res.status(500).json({
+            message: "Internal server error"
+        });
     }
-    
-    res.status(403).json({
-        messsage: "Hey diddy what is this?"
-    })
-    return;
-})
+});
 
-
-// app.post('/stripxml', async(req, res) =>{
-//     const xmlbody = req.body.xmlBody;
-//     const fileContent = parseResponse(xmlbody)
-    
-//     res.status(200).json({
-//         'jsonBody':fileContent,
-//     })
-//     return;
-
-// })
 if (process.env.NODE_ENV !== 'production') {
     app.listen(3000, () => {
-      console.log('Server running on port 3000');
+        console.log('Server running on port 3000');
     });
-  }
+}
 
-module.exports =  app;
+module.exports = app;
