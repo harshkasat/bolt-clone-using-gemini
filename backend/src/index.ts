@@ -16,23 +16,18 @@ const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     systemInstruction: getSystemPrompt(),
 });
+const express = require('express');
+const cors = require('cors');
+
+const express = require('express');
+const cors = require('cors');
+require("dotenv").config();
 
 const app = express();
 const allowedOrigins = ['https://www.cognitodev.space', 'https://launchpad.cognitodev.space'];
 const localhost = process.env.LOCAL_HOST ? true : false;
 app.use(cors({
-    origin: (origin, callback) => {
-        if (localhost){
-            callback(null, true);
-            return;
-        }
-        else if (origin && allowedOrigins.includes(origin)) {
-            callback(null, true);
-        }
-        else {
-            callback(new Error('Hey diddy what is this?'));
-        }
-    },
+    origin: true, // allow all origins
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     exposedHeaders: ['Cross-Origin-Embedder-Policy', 'Cross-Origin-Opener-Policy']
@@ -42,14 +37,14 @@ app.use(express.json())
 app.use((req, res, next) => {
     const origin = req.headers.origin;
 
-    if (localhost){
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
-        next();
-        return;
-    }
+    // if (localhost){
+    //     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    //     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    //     res.setHeader('Access-Control-Allow-Origin', '*');
+    //     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allow needed methods
+    //     next();
+    //     return;
+    // }
     // Set COOP/COEP headers
     if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
@@ -88,7 +83,7 @@ app.post('/template', async (req, res) =>{
         ],
         generationConfig: {
             maxOutputTokens: 200,
-            temperature: 0.1,
+         temperature: 0.1,
         }
     });
 
