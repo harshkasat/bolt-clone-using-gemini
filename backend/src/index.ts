@@ -18,28 +18,11 @@ const app = express();
 const allowedOrigins = ['https://www.cognitodev.space', 'https://launchpad.cognitodev.space'];
 const localhost = process.env.LOCAL_HOST ? true : false;
 
-// Use a single, comprehensive CORS configuration
+// Allow all origins with CORS
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or Postman)
-        if (!origin) return callback(null, true);
-        
-        // Allow localhost in development
-        if (localhost || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-            return callback(null, true);
-        }
-        
-        // Check if the origin is in our allowed list
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-        
-        // Reject the request
-        return callback(new Error('Not allowed by CORS'));
-    },
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
     optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
